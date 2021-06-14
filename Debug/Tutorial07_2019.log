@@ -1,0 +1,7 @@
+﻿  compilation object save succeeded; see C:\Users\Lenovo\repos\Direct3D11Tutorials\Debug\Tutorial07_PS.cso
+  compilation object save succeeded; see C:\Users\Lenovo\repos\Direct3D11Tutorials\Debug\Tutorial07_VS.cso
+  DDSTextureLoader.cpp
+  ligma.cpp
+  Generating Code...
+DDSTextureLoader.obj : warning LNK4075: ignoring '/EDITANDCONTINUE' due to '/SAFESEH' specification
+  Tutorial07_2019.vcxproj -> C:\Users\Lenovo\repos\Direct3D11Tutorials\Debug\Tutorial07.exe

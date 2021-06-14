@@ -1,0 +1,4 @@
+﻿C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBuild\Microsoft\VC\v160\Microsoft.CppBuild.targets(513,5): warning MSB8028: The intermediate directory (Debug\) contains files shared from another project (Tutorial07.vcxproj).  This can lead to incorrect clean and rebuild behavior.
+  rendertex.cpp
+DDSTextureLoader.obj : warning LNK4075: ignoring '/EDITANDCONTINUE' due to '/SAFESEH' specification
+  rendertex.vcxproj -> C:\Users\Lenovo\repos\d3d11-render-to-texture\Debug\rendertex.exe
