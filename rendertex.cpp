@@ -266,18 +266,19 @@ HRESULT InitWindow( HINSTANCE hInstance, int nCmdShow )
         return E_FAIL;
 
     g_hWndB = CreateWindow(L"WindowClass", L"Window B",
-        WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX,
-        CW_USEDEFAULT, CW_USEDEFAULT, rc.right - rc.left, rc.bottom - rc.top, nullptr, nullptr, hInstance,
-        nullptr);
+                           WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX,
+                           CW_USEDEFAULT, CW_USEDEFAULT, rc.right - rc.left, rc.bottom - rc.top, nullptr, nullptr, hInstance,
+                           nullptr);
     if (!g_hWndB)
         return E_FAIL;
 
     ShowWindow( g_hWnd, nCmdShow );
-    ShowWindow( g_hWndB, nCmdShow);
+    ShowWindow( g_hWndB, nCmdShow );
 
     return S_OK;
 }
 
+// shader from string method
 HRESULT CompileShaderFromString(const char* shaderName, LPCSTR szEntryPoint, LPCSTR szShaderModel, ID3DBlob** ppBlobOut)
 {
     HRESULT hr = S_OK;
@@ -466,6 +467,7 @@ HRESULT InitDevice()
     descDepth.BindFlags = D3D11_BIND_DEPTH_STENCIL;
     descDepth.CPUAccessFlags = 0;
     descDepth.MiscFlags = 0;
+
     hr = g_pd3dDevice->CreateTexture2D( &descDepth, nullptr, &g_pDepthStencil );
     if( FAILED( hr ) )
         return hr;
@@ -518,6 +520,13 @@ HRESULT InitDevice()
         return hr;
     }
 
+    hr = g_pd3dDevice1->CreateVertexShader(pVSBlob1->GetBufferPointer(), pVSBlob1->GetBufferSize(), nullptr, &g_pVertexShader1);
+    if (FAILED(hr))
+    {
+        pVSBlob1->Release();
+        return hr;
+    }
+
     // Define the input layout
     D3D11_INPUT_ELEMENT_DESC layout[] =
     {
@@ -561,8 +570,8 @@ HRESULT InitDevice()
     if( FAILED( hr ) )
         return hr;
 
-    hr = g_pd3dDevice1->CreatePixelShader(pPSBlob1->GetBufferPointer(), pPSBlob1->GetBufferSize(), nullptr, &g_pPixelShader);
-    pPSBlob->Release();
+    hr = g_pd3dDevice1->CreatePixelShader(pPSBlob1->GetBufferPointer(), pPSBlob1->GetBufferSize(), nullptr, &g_pPixelShader1 );
+    pPSBlob1->Release();
     if (FAILED(hr))
         return hr;
 
