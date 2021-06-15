@@ -742,26 +742,9 @@ void Render()
 {
     // Update our time
     static float t = 0.0f;
-    /*if( g_driverType == D3D_DRIVER_TYPE_REFERENCE )
-    {
-        t += ( float )XM_PI * 0.0125f;
-    }
-    else
-    {
-        static ULONGLONG timeStart = 0;
-        ULONGLONG timeCur = GetTickCount64();
-        if( timeStart == 0 )
-            timeStart = timeCur;
-        t = ( timeCur - timeStart ) / 1000.0f;
-    }*/
 
     // Rotate cube around the origin
     g_World = XMMatrixRotationY( t );
-
-    // Modify the color
-    /*g_vMeshColor.x = ( sinf( t * 1.0f ) + 1.0f ) * 0.5f;
-    g_vMeshColor.y = ( cosf( t * 1.0f ) + 1.0f ) * 0.5f;
-    g_vMeshColor.z = ( sinf( t * 1.0f ) + 1.0f ) * 0.5f;*/
 
     //
     // Clear the back buffer
