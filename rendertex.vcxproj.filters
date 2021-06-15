@@ -26,21 +26,8 @@
     <ClInclude Include="DDSTextureLoader.h" />
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="rendertex_PS.hlsl">
-      <Filter>Shaders</Filter>
-    </FxCompile>
-    <FxCompile Include="rendertex_VS.hlsl">
-      <Filter>Shaders</Filter>
-    </FxCompile>
-  </ItemGroup>
-  <ItemGroup>
     <Image Include="test.dds">
       <Filter>Resource Files</Filter>
     </Image>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="rendertex.fxh">
-      <Filter>Shaders</Filter>
-    </None>
   </ItemGroup>
 </Project>

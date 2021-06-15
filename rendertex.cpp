@@ -54,6 +54,7 @@ struct CBChangesEveryFrame
 //--------------------------------------------------------------------------------------
 HINSTANCE                           g_hInst = nullptr;
 HWND                                g_hWnd = nullptr;
+HWND                                g_hWndB = nullptr;
 D3D_DRIVER_TYPE                     g_driverType = D3D_DRIVER_TYPE_NULL;
 D3D_FEATURE_LEVEL                   g_featureLevel = D3D_FEATURE_LEVEL_11_0;
 ID3D11Device*                       g_pd3dDevice = nullptr;
@@ -66,7 +67,9 @@ ID3D11RenderTargetView*             g_pRenderTargetView = nullptr;
 ID3D11Texture2D*                    g_pDepthStencil = nullptr;
 ID3D11DepthStencilView*             g_pDepthStencilView = nullptr;
 ID3D11VertexShader*                 g_pVertexShader = nullptr;
+ID3D11VertexShader*                 g_pVertexShader1 = nullptr;
 ID3D11PixelShader*                  g_pPixelShader = nullptr;
+ID3D11PixelShader*                  g_pPixelShader1 = nullptr;
 ID3D11InputLayout*                  g_pVertexLayout = nullptr;
 ID3D11Buffer*                       g_pVertexBuffer = nullptr;
 ID3D11Buffer*                       g_pIndexBuffer = nullptr;
@@ -78,7 +81,7 @@ ID3D11SamplerState*                 g_pSamplerLinear = nullptr;
 XMMATRIX                            g_World;
 XMMATRIX                            g_View;
 XMMATRIX                            g_Projection;
-XMFLOAT4                            g_vMeshColor( 0.7f, 0.7f, 0.7f, 1.0f );
+XMFLOAT4                            g_vMeshColor( 1.0f, 1.0f, 1.0f, 1.0f );
 
 
 //--------------------------------------------------------------------------------------
@@ -133,45 +136,101 @@ int WINAPI wWinMain( _In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 // Shader stuff
 //--------------------------------------------------------------------------------------
 
-const auto shader = R"SHADER(
-Texture2D txDiffuse : register(t0);
-SamplerState samLinear : register(s0);
+const auto m_shader = R"SHADER(
+    Texture2D txDiffuse : register(t0);
+    SamplerState samLinear : register(s0);
 
+    cbuffer cbNeverChanges : register( b0 )
+    {
+        matrix View;
+    };
 
-//--------------------------------------------------------------------------------------
-struct VS_INPUT
-{
-    float4 Pos : POSITION;
-    float2 Tex : TEXCOORD0;
-};
+    cbuffer cbChangeOnResize : register( b1 )
+    {
+        matrix Projection;
+    };
 
-struct PS_INPUT
-{
-    float4 Pos : SV_POSITION;
-    float2 Tex : TEXCOORD0;
-};
+    cbuffer cbChangesEveryFrame : register( b2 )
+    {
+        matrix World;
+        float4 vMeshColor;
+    };
 
+    struct VS_INPUT
+    {
+        float4 Pos : POSITION;
+        float2 Tex : TEXCOORD0;
+    };
 
-//--------------------------------------------------------------------------------------
-// Vertex Shader
-//--------------------------------------------------------------------------------------
-PS_INPUT VS(VS_INPUT input)
-{
-    PS_INPUT output = (PS_INPUT)0;
-    output.Tex = input.Tex;
+    struct PS_INPUT
+    {
+        float4 Pos : SV_POSITION;
+        float2 Tex : TEXCOORD0;
+    };
 
-    return output;
-}
+    PS_INPUT VS(VS_INPUT input)
+    {
+        PS_INPUT output = (PS_INPUT)0;
+        output.Pos = mul( input.Pos, World );
+        output.Tex = input.Tex;
 
+        return output;
+    }
 
-//--------------------------------------------------------------------------------------
-// Pixel Shader
-//--------------------------------------------------------------------------------------
-float4 PS(PS_INPUT input) : SV_Target
-{
-    return txDiffuse.Sample(samLinear, input.Tex) * vMeshColor;
-}
-)SHADER";
+    float4 PS(PS_INPUT input) : SV_Target
+    {
+        return txDiffuse.Sample(samLinear, input.Tex);
+    }
+    )SHADER";
+
+const auto m_shaderB = R"SHADERB(
+    Texture2D txDiffuse : register(t0);
+    SamplerState samLinear : register(s0);
+
+    cbuffer cbNeverChanges : register( b0 )
+    {
+        matrix View;
+    };
+
+    cbuffer cbChangeOnResize : register( b1 )
+    {
+        matrix Projection;
+    };
+
+    cbuffer cbChangesEveryFrame : register( b2 )
+    {
+        matrix World;
+        float4 vMeshColor;
+    };
+
+    struct VS_INPUT
+    {
+        float4 Pos : POSITION;
+        float2 Tex : TEXCOORD0;
+    };
+
+    struct PS_INPUT
+    {
+        float4 Pos : SV_POSITION;
+        float2 Tex : TEXCOORD0;
+    };
+
+    PS_INPUT VS(VS_INPUT input)
+    {
+        PS_INPUT output = (PS_INPUT)0;
+        output.Pos = mul( input.Pos, View );
+        output.Pos = mul( output.Pos, World );
+        output.Pos = mul( output.Pos, Projection );
+        output.Tex = input.Tex;
+
+        return output;
+    }
+
+    float4 PS(PS_INPUT input) : SV_Target
+    {
+        return vMeshColor - txDiffuse.Sample(samLinear, input.Tex);
+    }
+    )SHADERB";
 
 //--------------------------------------------------------------------------------------
 // Register class and create window
@@ -190,7 +249,7 @@ HRESULT InitWindow( HINSTANCE hInstance, int nCmdShow )
     wcex.hCursor = LoadCursor( nullptr, IDC_ARROW );
     wcex.hbrBackground = ( HBRUSH )( COLOR_WINDOW + 1 );
     wcex.lpszMenuName = nullptr;
-    wcex.lpszClassName = L"TutorialWindowClass";
+    wcex.lpszClassName = L"WindowClass";
     wcex.hIconSm = LoadIcon( wcex.hInstance, ( LPCTSTR )IDI_TUTORIAL1 );
     if( !RegisterClassEx( &wcex ) )
         return E_FAIL;
@@ -199,63 +258,31 @@ HRESULT InitWindow( HINSTANCE hInstance, int nCmdShow )
     g_hInst = hInstance;
     RECT rc = { 0, 0, 800, 600 };
     AdjustWindowRect( &rc, WS_OVERLAPPEDWINDOW, FALSE );
-    g_hWnd = CreateWindow( L"TutorialWindowClass", L"hahayes",
+    g_hWnd = CreateWindow( L"WindowClass", L"Window A",
                            WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX,
                            CW_USEDEFAULT, CW_USEDEFAULT, rc.right - rc.left, rc.bottom - rc.top, nullptr, nullptr, hInstance,
                            nullptr );
     if( !g_hWnd )
         return E_FAIL;
 
+    g_hWndB = CreateWindow(L"WindowClass", L"Window B",
+        WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX,
+        CW_USEDEFAULT, CW_USEDEFAULT, rc.right - rc.left, rc.bottom - rc.top, nullptr, nullptr, hInstance,
+        nullptr);
+    if (!g_hWndB)
+        return E_FAIL;
+
     ShowWindow( g_hWnd, nCmdShow );
+    ShowWindow( g_hWndB, nCmdShow);
 
     return S_OK;
 }
-
-
-//--------------------------------------------------------------------------------------
-// Helper for compiling shaders with D3DCompile
-//
-// With VS 11, we could load up prebuilt .cso files instead...
-//--------------------------------------------------------------------------------------
-//HRESULT CompileShaderFromFile( const WCHAR* szFileName, LPCSTR szEntryPoint, LPCSTR szShaderModel, ID3DBlob** ppBlobOut )
-//{
-//    HRESULT hr = S_OK;
-//
-//    DWORD dwShaderFlags = D3DCOMPILE_ENABLE_STRICTNESS;
-//#ifdef _DEBUG
-//    // Set the D3DCOMPILE_DEBUG flag to embed debug information in the shaders.
-//    // Setting this flag improves the shader debugging experience, but still allows
-//    // the shaders to be optimized and to run exactly the way they will run in
-//    // the release configuration of this program.
-//    dwShaderFlags |= D3DCOMPILE_DEBUG;
-//
-//    // Disable optimizations to further improve shader debugging
-//    dwShaderFlags |= D3DCOMPILE_SKIP_OPTIMIZATION;
-//#endif
-//
-//    ID3DBlob* pErrorBlob = nullptr;
-//    hr = D3DCompileFromFile( szFileName, nullptr, nullptr, szEntryPoint, szShaderModel,
-//        dwShaderFlags, 0, ppBlobOut, &pErrorBlob );
-//    if( FAILED(hr) )
-//    {
-//        if( pErrorBlob )
-//        {
-//            OutputDebugStringA( reinterpret_cast<const char*>( pErrorBlob->GetBufferPointer() ) );
-//            pErrorBlob->Release();
-//        }
-//        return hr;
-//    }
-//    if( pErrorBlob ) pErrorBlob->Release();
-//
-//    return S_OK;
-//}
 
 HRESULT CompileShaderFromString(const char* shaderName, LPCSTR szEntryPoint, LPCSTR szShaderModel, ID3DBlob** ppBlobOut)
 {
     HRESULT hr = S_OK;
 
     DWORD dwShaderFlags = D3DCOMPILE_ENABLE_STRICTNESS;
-
 
     ID3DBlob* pErrorBlob = nullptr;
     hr = D3DCompile(
@@ -466,11 +493,20 @@ HRESULT InitDevice()
 
     // Compile the vertex shader
     ID3DBlob* pVSBlob = nullptr;
-    hr = CompileShaderFromString( shader, "VS", "vs_4_0", &pVSBlob );
+    hr = CompileShaderFromString( m_shader, "VS", "vs_4_0", &pVSBlob );
     if( FAILED( hr ) )
     {
         MessageBox( nullptr,
-                    L"The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.", L"Error", MB_OK );
+                    L"Vertex shader compilation failed.", L"Error", MB_OK );
+        return hr;
+    }
+
+    ID3DBlob* pVSBlob1 = nullptr;
+    hr = CompileShaderFromString(m_shaderB, "VS", "vs_4_0", &pVSBlob1);
+    if (FAILED(hr))
+    {
+        MessageBox(nullptr,
+                    L"Vertex shader compilation failed.", L"Error", MB_OK);
         return hr;
     }
 
@@ -502,11 +538,20 @@ HRESULT InitDevice()
 
     // Compile the pixel shader
     ID3DBlob* pPSBlob = nullptr;
-    hr = CompileShaderFromString( shader, "PS", "ps_4_0", &pPSBlob );
+    hr = CompileShaderFromString( m_shader, "PS", "ps_4_0", &pPSBlob );
     if( FAILED( hr ) )
     {
         MessageBox( nullptr,
-                    L"The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.", L"Error", MB_OK );
+                    L"Pixel shader compilation failed.", L"Error", MB_OK );
+        return hr;
+    }
+
+    ID3DBlob* pPSBlob1 = nullptr;
+    hr = CompileShaderFromString(m_shaderB, "PS", "ps_4_0", &pPSBlob1);
+    if (FAILED(hr))
+    {
+        MessageBox(nullptr,
+                    L"Pixel shader B compilation failed.", L"Error", MB_OK);
         return hr;
     }
 
@@ -514,6 +559,11 @@ HRESULT InitDevice()
     hr = g_pd3dDevice->CreatePixelShader( pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, &g_pPixelShader );
     pPSBlob->Release();
     if( FAILED( hr ) )
+        return hr;
+
+    hr = g_pd3dDevice1->CreatePixelShader(pPSBlob1->GetBufferPointer(), pPSBlob1->GetBufferSize(), nullptr, &g_pPixelShader);
+    pPSBlob->Release();
+    if (FAILED(hr))
         return hr;
 
     // Create vertex buffer
@@ -609,9 +659,6 @@ HRESULT InitDevice()
     XMVECTOR Eye = XMVectorSet(0.0f, 0.0f, -5.0f, 0.0f);    // cam rotation (Y-axis Rot, X-axis Rot, Z-axis?)
     XMVECTOR At = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
     XMVECTOR Up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);      // ? but cannot be empty/zero
-    /*XMVECTOR Eye = XMVectorSet(0.0f, 3.0f, -6.0f, 0.0f);
-    XMVECTOR At = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
-    XMVECTOR Up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);*/
     g_View = XMMatrixLookAtLH( Eye, At, Up );
 
     CBNeverChanges cbNeverChanges;
