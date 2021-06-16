@@ -23,9 +23,9 @@
 
 using namespace DirectX;
 
-//--------------------------------------------------------------------------------------
-// Structures
-//--------------------------------------------------------------------------------------
+//? --------------------------------------------------------------------------------------
+//? Structures
+//? --------------------------------------------------------------------------------------
 struct SimpleVertex
 {
     XMFLOAT3 Pos;
@@ -49,9 +49,9 @@ struct CBChangesEveryFrame
 };
 
 
-//--------------------------------------------------------------------------------------
-// Global Variables
-//--------------------------------------------------------------------------------------
+//? --------------------------------------------------------------------------------------
+//? Global Variables
+//? --------------------------------------------------------------------------------------
 HINSTANCE                           g_hInst = nullptr;
 HWND                                g_hWnd = nullptr;
 HWND                                g_hWndB = nullptr;
@@ -84,9 +84,9 @@ XMMATRIX                            g_Projection;
 XMFLOAT4                            g_vMeshColor( 1.0f, 1.0f, 1.0f, 1.0f );
 
 
-//--------------------------------------------------------------------------------------
-// Forward declarations
-//--------------------------------------------------------------------------------------
+//? --------------------------------------------------------------------------------------
+//? Forward declarations
+//? --------------------------------------------------------------------------------------
 HRESULT InitWindow( HINSTANCE hInstance, int nCmdShow );
 HRESULT InitDevice();
 void CleanupDevice();
@@ -94,10 +94,10 @@ LRESULT CALLBACK    WndProc( HWND, UINT, WPARAM, LPARAM );
 void Render();
 
 
-//--------------------------------------------------------------------------------------
-// Entry point to the program. Initializes everything and goes into a message processing
-// loop. Idle time is used to render the scene.
-//--------------------------------------------------------------------------------------
+//? --------------------------------------------------------------------------------------
+//? Entry point to the program. Initializes everything and goes into a message processing
+//? loop. Idle time is used to render the scene.
+//? --------------------------------------------------------------------------------------
 int WINAPI wWinMain( _In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPWSTR lpCmdLine, _In_ int nCmdShow )
 {
     UNREFERENCED_PARAMETER( hPrevInstance );
@@ -132,9 +132,9 @@ int WINAPI wWinMain( _In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
     return ( int )msg.wParam;
 }
 
-//--------------------------------------------------------------------------------------
-// Shader stuff
-//--------------------------------------------------------------------------------------
+//? --------------------------------------------------------------------------------------
+//? Shader stuff
+//? --------------------------------------------------------------------------------------
 
 const auto m_shader = R"SHADER(
     Texture2D txDiffuse : register(t0);
@@ -232,9 +232,9 @@ const auto m_shaderB = R"SHADERB(
     }
     )SHADERB";
 
-//--------------------------------------------------------------------------------------
-// Register class and create window
-//--------------------------------------------------------------------------------------
+//? --------------------------------------------------------------------------------------
+//? Register class and create window
+//? --------------------------------------------------------------------------------------
 HRESULT InitWindow( HINSTANCE hInstance, int nCmdShow )
 {
     // Register class
@@ -278,7 +278,7 @@ HRESULT InitWindow( HINSTANCE hInstance, int nCmdShow )
     return S_OK;
 }
 
-// shader from string method
+//? shader from string method
 HRESULT CompileShaderFromString(const char* shaderName, LPCSTR szEntryPoint, LPCSTR szShaderModel, ID3DBlob** ppBlobOut)
 {
     HRESULT hr = S_OK;
@@ -314,9 +314,9 @@ HRESULT CompileShaderFromString(const char* shaderName, LPCSTR szEntryPoint, LPC
     return S_OK;
 }
 
-//--------------------------------------------------------------------------------------
-// Create Direct3D device and swap chain
-//--------------------------------------------------------------------------------------
+//? --------------------------------------------------------------------------------------
+//? Create Direct3D device and swap chain
+//? --------------------------------------------------------------------------------------
 HRESULT InitDevice()
 {
     HRESULT hr = S_OK;
@@ -387,11 +387,10 @@ HRESULT InitDevice()
     if (FAILED(hr))
         return hr;
 
-    // Create swap chain
+    //? Create swap chain
     IDXGIFactory2* dxgiFactory2 = nullptr;
     hr = dxgiFactory->QueryInterface( __uuidof(IDXGIFactory2), reinterpret_cast<void**>(&dxgiFactory2) );
-    if ( dxgiFactory2 )
-    {
+
         // DirectX 11.1 or later
         hr = g_pd3dDevice->QueryInterface( __uuidof(ID3D11Device1), reinterpret_cast<void**>(&g_pd3dDevice1) );
         if (SUCCEEDED(hr))
@@ -415,25 +414,23 @@ HRESULT InitDevice()
         }
 
         dxgiFactory2->Release();
-    }
-    else
-    {
-        // DirectX 11.0 systems
-        DXGI_SWAP_CHAIN_DESC sd = {};
-        sd.BufferCount = 1;
-        sd.BufferDesc.Width = width;
-        sd.BufferDesc.Height = height;
-        sd.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-        sd.BufferDesc.RefreshRate.Numerator = 60;
-        sd.BufferDesc.RefreshRate.Denominator = 1;
-        sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-        sd.OutputWindow = g_hWnd;
-        sd.SampleDesc.Count = 1;
-        sd.SampleDesc.Quality = 0;
-        sd.Windowed = TRUE;
 
-        hr = dxgiFactory->CreateSwapChain( g_pd3dDevice, &sd, &g_pSwapChain );
-    }
+        //! DirectX 11.0 systems
+        DXGI_SWAP_CHAIN_DESC sd1 = {};
+        sd1.BufferCount = 1;
+        sd1.BufferDesc.Width = width;
+        sd1.BufferDesc.Height = height;
+        sd1.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+        sd1.BufferDesc.RefreshRate.Numerator = 60;
+        sd1.BufferDesc.RefreshRate.Denominator = 1;
+        sd1.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+        sd1.OutputWindow = g_hWndB;
+        sd1.SampleDesc.Count = 1;
+        sd1.SampleDesc.Quality = 0;
+        sd1.Windowed = TRUE;
+
+        hr = dxgiFactory->CreateSwapChain( g_pd3dDevice, &sd1, &g_pSwapChain );
+
 
     // Note this tutorial doesn't handle full-screen swapchains so we block the ALT+ENTER shortcut
     dxgiFactory->MakeWindowAssociation( g_hWnd, DXGI_MWA_NO_ALT_ENTER );
@@ -454,7 +451,7 @@ HRESULT InitDevice()
     if( FAILED( hr ) )
         return hr;
 
-    // Create depth stencil texture
+    //? Create depth stencil texture
     D3D11_TEXTURE2D_DESC descDepth = {};
     descDepth.Width = width;
     descDepth.Height = height;
@@ -472,7 +469,7 @@ HRESULT InitDevice()
     if( FAILED( hr ) )
         return hr;
 
-    // Create the depth stencil view
+    //? Create the depth stencil view
     D3D11_DEPTH_STENCIL_VIEW_DESC descDSV = {};
     descDSV.Format = descDepth.Format;
     descDSV.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
@@ -483,7 +480,7 @@ HRESULT InitDevice()
 
     g_pImmediateContext->OMSetRenderTargets( 1, &g_pRenderTargetView, g_pDepthStencilView );
 
-    // Setup the viewport
+    //? Setup the viewport
     D3D11_VIEWPORT vp;
     vp.Width = (FLOAT)width;
     vp.Height = (FLOAT)height;
@@ -493,7 +490,7 @@ HRESULT InitDevice()
     vp.TopLeftY = 0;
     g_pImmediateContext->RSSetViewports( 1, &vp );
 
-    // Compile the vertex shader
+    //? Compile the vertex shader
     ID3DBlob* pVSBlob = nullptr;
     hr = CompileShaderFromString( m_shader, "VS", "vs_4_0", &pVSBlob );
     if( FAILED( hr ) )
@@ -512,7 +509,7 @@ HRESULT InitDevice()
         return hr;
     }
 
-    // Create the vertex shader
+    //? Create the vertex shader
     hr = g_pd3dDevice->CreateVertexShader( pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), nullptr, &g_pVertexShader );
     if( FAILED( hr ) )
     {
@@ -527,7 +524,7 @@ HRESULT InitDevice()
         return hr;
     }
 
-    // Define the input layout
+    //? Define the input layout
     D3D11_INPUT_ELEMENT_DESC layout[] =
     {
         { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
@@ -535,17 +532,17 @@ HRESULT InitDevice()
     };
     UINT numElements = ARRAYSIZE( layout );
 
-    // Create the input layout
+    //? Create the input layout
     hr = g_pd3dDevice->CreateInputLayout( layout, numElements, pVSBlob->GetBufferPointer(),
                                           pVSBlob->GetBufferSize(), &g_pVertexLayout );
     pVSBlob->Release();
     if( FAILED( hr ) )
         return hr;
 
-    // Set the input layout
+    //? Set the input layout
     g_pImmediateContext->IASetInputLayout( g_pVertexLayout );
 
-    // Compile the pixel shader
+    //? Compile the pixel shader
     ID3DBlob* pPSBlob = nullptr;
     hr = CompileShaderFromString( m_shader, "PS", "ps_4_0", &pPSBlob );
     if( FAILED( hr ) )
@@ -564,7 +561,7 @@ HRESULT InitDevice()
         return hr;
     }
 
-    // Create the pixel shader
+    //? Create the pixel shader
     hr = g_pd3dDevice->CreatePixelShader( pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, &g_pPixelShader );
     pPSBlob->Release();
     if( FAILED( hr ) )
@@ -575,7 +572,7 @@ HRESULT InitDevice()
     if (FAILED(hr))
         return hr;
 
-    // Create vertex buffer
+    //? Create vertex buffer
     SimpleVertex vertices[] =
     {
         { XMFLOAT3( -1.0f, -1.0f, 0.0f ), XMFLOAT2( 1.0f, 1.0f ) }, // vertex XYZ and texture map reference
@@ -596,13 +593,13 @@ HRESULT InitDevice()
     if( FAILED( hr ) )
         return hr;
 
-    // Set vertex buffer
+    //? Set vertex buffer
     UINT stride = sizeof( SimpleVertex );
     UINT offset = 0;
     g_pImmediateContext->IASetVertexBuffers( 0, 1, &g_pVertexBuffer, &stride, &offset );
 
-    // Create index buffer
-    // Create vertex buffer
+    //? Create index buffer
+    //? Create vertex buffer
     WORD indices[] =
     {
         3,1,0,
@@ -618,13 +615,13 @@ HRESULT InitDevice()
     if( FAILED( hr ) )
         return hr;
 
-    // Set index buffer
+    //? Set index buffer
     g_pImmediateContext->IASetIndexBuffer( g_pIndexBuffer, DXGI_FORMAT_R16_UINT, 0 );
 
-    // Set primitive topology
+    //? Set primitive topology
     g_pImmediateContext->IASetPrimitiveTopology( D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST );
 
-    // Create the constant buffers
+    //? Create the constant buffers
     bd.Usage = D3D11_USAGE_DEFAULT;
     bd.ByteWidth = sizeof(CBNeverChanges);
     bd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
@@ -643,12 +640,12 @@ HRESULT InitDevice()
     if( FAILED( hr ) )
         return hr;
 
-    // Load the Texture
+    //? Load the Texture
     hr = CreateDDSTextureFromFile( g_pd3dDevice, L"test.dds", nullptr, &g_pTextureRV );
     if( FAILED( hr ) )
         return hr;
 
-    // Create the sample state
+    //? Create the sample state
     D3D11_SAMPLER_DESC sampDesc = {};
     sampDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
     sampDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
@@ -661,10 +658,10 @@ HRESULT InitDevice()
     if( FAILED( hr ) )
         return hr;
 
-    // Initialize the world matrices
+    //? Initialize the world matrices
     g_World = XMMatrixIdentity();
 
-    // Initialize the view matrix
+    //? Initialize the view matrix
     XMVECTOR Eye = XMVectorSet(0.0f, 0.0f, -5.0f, 0.0f);    // cam rotation (Y-axis Rot, X-axis Rot, Z-axis?)
     XMVECTOR At = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
     XMVECTOR Up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);      // ? but cannot be empty/zero
@@ -674,7 +671,7 @@ HRESULT InitDevice()
     cbNeverChanges.mView = XMMatrixTranspose( g_View );
     g_pImmediateContext->UpdateSubresource( g_pCBNeverChanges, 0, nullptr, &cbNeverChanges, 0, 0 );
 
-    // Initialize the projection matrix
+    //? Initialize the projection matrix
     g_Projection = XMMatrixPerspectiveFovLH( XM_PIDIV4, width / (FLOAT)height, 0.01f, 100.0f );
 
     CBChangeOnResize cbChangesOnResize;
@@ -685,9 +682,9 @@ HRESULT InitDevice()
 }
 
 
-//--------------------------------------------------------------------------------------
-// Clean up the objects we've created
-//--------------------------------------------------------------------------------------
+//? --------------------------------------------------------------------------------------
+//? Clean up the objects we've created
+//? --------------------------------------------------------------------------------------
 void CleanupDevice()
 {
     if( g_pImmediateContext ) g_pImmediateContext->ClearState();
@@ -714,9 +711,9 @@ void CleanupDevice()
 }
 
 
-//--------------------------------------------------------------------------------------
-// Called every time the application receives a message
-//--------------------------------------------------------------------------------------
+//? --------------------------------------------------------------------------------------
+//? Called every time the application receives a message
+//? --------------------------------------------------------------------------------------
 LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam )
 {
     PAINTSTRUCT ps;
@@ -744,9 +741,9 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 }
 
 
-//--------------------------------------------------------------------------------------
-// Render a frame
-//--------------------------------------------------------------------------------------
+//? --------------------------------------------------------------------------------------
+//? Render a frame
+//? --------------------------------------------------------------------------------------
 void Render()
 {
     // Update our time
