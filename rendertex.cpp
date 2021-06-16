@@ -23,9 +23,7 @@
 
 using namespace DirectX;
 
-//--------------------------------------------------------------------------------------
-// Structures
-//--------------------------------------------------------------------------------------
+//? STRUCTS
 struct SimpleVertex
 {
     XMFLOAT3 Pos;
@@ -49,9 +47,7 @@ struct CBChangesEveryFrame
 };
 
 
-//--------------------------------------------------------------------------------------
-// Global Variables
-//--------------------------------------------------------------------------------------
+//? COM INIT
 HINSTANCE                           g_hInst = nullptr;
 HWND                                g_hWnd = nullptr;
 HWND                                g_hWndB = nullptr;
@@ -63,8 +59,10 @@ ID3D11DeviceContext*                g_pImmediateContext = nullptr;
 ID3D11DeviceContext1*               g_pImmediateContext1 = nullptr;
 IDXGISwapChain*                     g_pSwapChain = nullptr;
 IDXGISwapChain1*                    g_pSwapChain1 = nullptr;
+IDXGISwapChain1*                    g_pSwapChain2 = nullptr;
 ID3D11RenderTargetView*             g_pRenderTargetView = nullptr;
 ID3D11Texture2D*                    g_pDepthStencil = nullptr;
+ID3D11Texture2D*                    g_pRenderedTexture = nullptr;
 ID3D11DepthStencilView*             g_pDepthStencilView = nullptr;
 ID3D11VertexShader*                 g_pVertexShader = nullptr;
 ID3D11VertexShader*                 g_pVertexShader1 = nullptr;
@@ -76,6 +74,7 @@ ID3D11Buffer*                       g_pIndexBuffer = nullptr;
 ID3D11Buffer*                       g_pCBNeverChanges = nullptr;
 ID3D11Buffer*                       g_pCBChangeOnResize = nullptr;
 ID3D11Buffer*                       g_pCBChangesEveryFrame = nullptr;
+ID3D11Buffer*                       g_pSwapChainTexBuffer = nullptr;
 ID3D11ShaderResourceView*           g_pTextureRV = nullptr;
 ID3D11SamplerState*                 g_pSamplerLinear = nullptr;
 XMMATRIX                            g_World;
@@ -84,9 +83,7 @@ XMMATRIX                            g_Projection;
 XMFLOAT4                            g_vMeshColor( 1.0f, 1.0f, 1.0f, 1.0f );
 
 
-//--------------------------------------------------------------------------------------
-// Forward declarations
-//--------------------------------------------------------------------------------------
+//? FORWARD DECLARATIONS
 HRESULT InitWindow( HINSTANCE hInstance, int nCmdShow );
 HRESULT InitDevice();
 void CleanupDevice();
@@ -94,10 +91,7 @@ LRESULT CALLBACK    WndProc( HWND, UINT, WPARAM, LPARAM );
 void Render();
 
 
-//--------------------------------------------------------------------------------------
-// Entry point to the program. Initializes everything and goes into a message processing
-// loop. Idle time is used to render the scene.
-//--------------------------------------------------------------------------------------
+//? ENTRY POINT?
 int WINAPI wWinMain( _In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPWSTR lpCmdLine, _In_ int nCmdShow )
 {
     UNREFERENCED_PARAMETER( hPrevInstance );
@@ -132,9 +126,7 @@ int WINAPI wWinMain( _In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
     return ( int )msg.wParam;
 }
 
-//--------------------------------------------------------------------------------------
-// Shader stuff
-//--------------------------------------------------------------------------------------
+//? SHADERS
 
 const auto m_shader = R"SHADER(
     Texture2D txDiffuse : register(t0);
@@ -232,9 +224,7 @@ const auto m_shaderB = R"SHADERB(
     }
     )SHADERB";
 
-//--------------------------------------------------------------------------------------
-// Register class and create window
-//--------------------------------------------------------------------------------------
+//? REGISTER WND CLASS AND CREATE WINDOWS
 HRESULT InitWindow( HINSTANCE hInstance, int nCmdShow )
 {
     // Register class
@@ -278,7 +268,7 @@ HRESULT InitWindow( HINSTANCE hInstance, int nCmdShow )
     return S_OK;
 }
 
-// shader from string method
+//? SHADER FROM STRING
 HRESULT CompileShaderFromString(const char* shaderName, LPCSTR szEntryPoint, LPCSTR szShaderModel, ID3DBlob** ppBlobOut)
 {
     HRESULT hr = S_OK;
@@ -314,9 +304,7 @@ HRESULT CompileShaderFromString(const char* shaderName, LPCSTR szEntryPoint, LPC
     return S_OK;
 }
 
-//--------------------------------------------------------------------------------------
-// Create Direct3D device and swap chain
-//--------------------------------------------------------------------------------------
+//? Create Direct3D device and swap chain
 HRESULT InitDevice()
 {
     HRESULT hr = S_OK;
@@ -367,7 +355,7 @@ HRESULT InitDevice()
     if( FAILED( hr ) )
         return hr;
 
-    // Obtain DXGI factory from device (since we used nullptr for pAdapter above)
+    //! Obtain DXGI factory from device (since we used nullptr for pAdapter above)
     IDXGIFactory1* dxgiFactory = nullptr;
     {
         IDXGIDevice* dxgiDevice = nullptr;
@@ -387,56 +375,51 @@ HRESULT InitDevice()
     if (FAILED(hr))
         return hr;
 
-    // Create swap chain
+    //? Create swap chain
     IDXGIFactory2* dxgiFactory2 = nullptr;
-    hr = dxgiFactory->QueryInterface( __uuidof(IDXGIFactory2), reinterpret_cast<void**>(&dxgiFactory2) );
-    if ( dxgiFactory2 )
+    hr = dxgiFactory->QueryInterface(__uuidof(IDXGIFactory2), reinterpret_cast<void**>(&dxgiFactory2));
+
+    hr = g_pd3dDevice->QueryInterface( __uuidof(ID3D11Device1), reinterpret_cast<void**>(&g_pd3dDevice1) );
+    if (SUCCEEDED(hr))
     {
-        // DirectX 11.1 or later
-        hr = g_pd3dDevice->QueryInterface( __uuidof(ID3D11Device1), reinterpret_cast<void**>(&g_pd3dDevice1) );
-        if (SUCCEEDED(hr))
-        {
-            (void) g_pImmediateContext->QueryInterface( __uuidof(ID3D11DeviceContext1), reinterpret_cast<void**>(&g_pImmediateContext1) );
-        }
-
-        DXGI_SWAP_CHAIN_DESC1 sd = {};
-        sd.Width = width;
-        sd.Height = height;
-        sd.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-        sd.SampleDesc.Count = 1;
-        sd.SampleDesc.Quality = 0;
-        sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-        sd.BufferCount = 1;
-
-        hr = dxgiFactory2->CreateSwapChainForHwnd( g_pd3dDevice, g_hWnd, &sd, nullptr, nullptr, &g_pSwapChain1 );
-        if (SUCCEEDED(hr))
-        {
-            hr = g_pSwapChain1->QueryInterface( __uuidof(IDXGISwapChain), reinterpret_cast<void**>(&g_pSwapChain) );
-        }
-
-        dxgiFactory2->Release();
+        (void) g_pImmediateContext->QueryInterface( __uuidof(ID3D11DeviceContext1), reinterpret_cast<void**>(&g_pImmediateContext1) );
     }
-    else
+
+    DXGI_SWAP_CHAIN_DESC1 sd = {};
+    sd.Width = width;
+    sd.Height = height;
+    sd.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    sd.SampleDesc.Count = 1;
+    sd.SampleDesc.Quality = 0;
+    sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+    sd.BufferCount = 1;
+
+    hr = dxgiFactory2->CreateSwapChainForHwnd( g_pd3dDevice, g_hWnd, &sd, nullptr, nullptr, &g_pSwapChain1 );
+    if (SUCCEEDED(hr))
     {
-        // DirectX 11.0 systems
-        DXGI_SWAP_CHAIN_DESC sd = {};
-        sd.BufferCount = 1;
-        sd.BufferDesc.Width = width;
-        sd.BufferDesc.Height = height;
-        sd.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-        sd.BufferDesc.RefreshRate.Numerator = 60;
-        sd.BufferDesc.RefreshRate.Denominator = 1;
-        sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-        sd.OutputWindow = g_hWnd;
-        sd.SampleDesc.Count = 1;
-        sd.SampleDesc.Quality = 0;
-        sd.Windowed = TRUE;
-
-        hr = dxgiFactory->CreateSwapChain( g_pd3dDevice, &sd, &g_pSwapChain );
+        hr = g_pSwapChain1->QueryInterface( __uuidof(IDXGISwapChain), reinterpret_cast<void**>(&g_pSwapChain) );
     }
+
+    DXGI_SWAP_CHAIN_DESC sd1 = {};
+    sd1.BufferCount = 1;
+    sd1.BufferDesc.Width = width;
+    sd1.BufferDesc.Height = height;
+    sd1.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    sd1.BufferDesc.RefreshRate.Numerator = 60;
+    sd1.BufferDesc.RefreshRate.Denominator = 1;
+    sd1.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+    sd1.OutputWindow = g_hWndB;
+    sd1.SampleDesc.Count = 1;
+    sd1.SampleDesc.Quality = 0;
+    sd1.Windowed = TRUE;
+
+    hr = dxgiFactory->CreateSwapChain(g_pd3dDevice, &sd1, &g_pSwapChain);
+
+    dxgiFactory2->Release();
 
     // Note this tutorial doesn't handle full-screen swapchains so we block the ALT+ENTER shortcut
     dxgiFactory->MakeWindowAssociation( g_hWnd, DXGI_MWA_NO_ALT_ENTER );
+    dxgiFactory->MakeWindowAssociation(g_hWndB, DXGI_MWA_NO_ALT_ENTER);
 
     dxgiFactory->Release();
 
@@ -450,9 +433,26 @@ HRESULT InitDevice()
         return hr;
 
     hr = g_pd3dDevice->CreateRenderTargetView( pBackBuffer, nullptr, &g_pRenderTargetView );
-    pBackBuffer->Release();
     if( FAILED( hr ) )
         return hr;
+
+    // Capture rendered texture
+    D3D11_TEXTURE2D_DESC descRend = {};
+    descRend.Width = width;
+    descRend.Height = height;
+    descRend.MipLevels = 1;
+    descRend.ArraySize = 1;
+    descRend.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    descRend.SampleDesc.Count = 1;
+    descRend.SampleDesc.Quality = 0;
+    descRend.Usage = D3D11_USAGE_DEFAULT;
+    descRend.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+    descRend.CPUAccessFlags = 0;
+    descRend.MiscFlags = 0;
+
+    /*hr = g_pd3dDevice1->CreateTexture2D(&descRend, nullptr, &g_pRenderedTexture);
+    if (FAILED(hr))
+        return hr;*/
 
     // Create depth stencil texture
     D3D11_TEXTURE2D_DESC descDepth = {};
@@ -471,6 +471,10 @@ HRESULT InitDevice()
     hr = g_pd3dDevice->CreateTexture2D( &descDepth, nullptr, &g_pDepthStencil );
     if( FAILED( hr ) )
         return hr;
+
+    //g_pSwapChain->GetBuffer(&g_pSwapChainTexBuffer);
+
+    //hr = g_pd3dDevice1->CreateShaderResourceView(&g_pSwapChain, nullptr, &&g_pRenderedTexture);
 
     // Create the depth stencil view
     D3D11_DEPTH_STENCIL_VIEW_DESC descDSV = {};
