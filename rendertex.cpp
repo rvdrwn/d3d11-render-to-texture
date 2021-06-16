@@ -15,6 +15,7 @@
 //--------------------------------------------------------------------------------------
 #include <windows.h>
 #include <d3d11_1.h>
+#include <d3d11_2.h>
 #include <d3dcompiler.h>
 #include <directxmath.h>
 #include <directxcolors.h>
@@ -54,15 +55,18 @@ struct CBChangesEveryFrame
 //? --------------------------------------------------------------------------------------
 HINSTANCE                           g_hInst = nullptr;
 HWND                                g_hWnd = nullptr;
-HWND                                g_hWndB = nullptr;
+HWND                                g_hWnd1 = nullptr;
 D3D_DRIVER_TYPE                     g_driverType = D3D_DRIVER_TYPE_NULL;
 D3D_FEATURE_LEVEL                   g_featureLevel = D3D_FEATURE_LEVEL_11_0;
 ID3D11Device*                       g_pd3dDevice = nullptr;
 ID3D11Device1*                      g_pd3dDevice1 = nullptr;
+ID3D11Device2*                      g_pd3dDevice2 = nullptr;
 ID3D11DeviceContext*                g_pImmediateContext = nullptr;
 ID3D11DeviceContext1*               g_pImmediateContext1 = nullptr;
+ID3D11DeviceContext2*               g_pImmediateContext2 = nullptr;
 IDXGISwapChain*                     g_pSwapChain = nullptr;
 IDXGISwapChain1*                    g_pSwapChain1 = nullptr;
+IDXGISwapChain2*                    g_pSwapChain2 = nullptr;
 ID3D11RenderTargetView*             g_pRenderTargetView = nullptr;
 ID3D11Texture2D*                    g_pDepthStencil = nullptr;
 ID3D11DepthStencilView*             g_pDepthStencilView = nullptr;
@@ -265,15 +269,15 @@ HRESULT InitWindow( HINSTANCE hInstance, int nCmdShow )
     if( !g_hWnd )
         return E_FAIL;
 
-    g_hWndB = CreateWindow(L"WindowClass", L"Window B",
+    g_hWnd1 = CreateWindow(L"WindowClass", L"Window B",
                            WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX,
                            CW_USEDEFAULT, CW_USEDEFAULT, rc.right - rc.left, rc.bottom - rc.top, nullptr, nullptr, hInstance,
                            nullptr);
-    if (!g_hWndB)
+    if (!g_hWnd1)
         return E_FAIL;
 
     ShowWindow( g_hWnd, nCmdShow );
-    ShowWindow( g_hWndB, nCmdShow );
+    ShowWindow( g_hWnd1, nCmdShow );
 
     return S_OK;
 }
@@ -389,9 +393,10 @@ HRESULT InitDevice()
 
     //? Create swap chain
     IDXGIFactory2* dxgiFactory2 = nullptr;
+    IDXGIFactory3* dxgiFactory3 = nullptr;
     hr = dxgiFactory->QueryInterface( __uuidof(IDXGIFactory2), reinterpret_cast<void**>(&dxgiFactory2) );
 
-        // DirectX 11.1 or later
+        //! Window A SwapChain
         hr = g_pd3dDevice->QueryInterface( __uuidof(ID3D11Device1), reinterpret_cast<void**>(&g_pd3dDevice1) );
         if (SUCCEEDED(hr))
         {
@@ -415,21 +420,17 @@ HRESULT InitDevice()
 
         dxgiFactory2->Release();
 
-        //! DirectX 11.0 systems
-        DXGI_SWAP_CHAIN_DESC sd1 = {};
-        sd1.BufferCount = 1;
-        sd1.BufferDesc.Width = width;
-        sd1.BufferDesc.Height = height;
-        sd1.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-        sd1.BufferDesc.RefreshRate.Numerator = 60;
-        sd1.BufferDesc.RefreshRate.Denominator = 1;
-        sd1.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-        sd1.OutputWindow = g_hWndB;
-        sd1.SampleDesc.Count = 1;
-        sd1.SampleDesc.Quality = 0;
-        sd1.Windowed = TRUE;
+        //! Window B SwapChain
 
-        hr = dxgiFactory->CreateSwapChain( g_pd3dDevice, &sd1, &g_pSwapChain );
+        /*g_pSwapChain2->QueryInterface(__uuidof(IDXGISwapChain1), reinterpret_cast<void**>(&g_pSwapChain1));
+
+           hr = dxgiFactory3->CreateSwapChainForHwnd(g_pd3dDevice2, g_hWnd1, &sd, nullptr, nullptr, &g_pSwapChain2);
+        if (SUCCEEDED(hr))
+        {
+            hr = g_pSwapChain1->QueryInterface(__uuidof(IDXGISwapChain), reinterpret_cast<void**>(&g_pSwapChain));
+        }
+
+        dxgiFactory2->Release();*/
 
 
     // Note this tutorial doesn't handle full-screen swapchains so we block the ALT+ENTER shortcut
