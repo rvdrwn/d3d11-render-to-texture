@@ -355,8 +355,17 @@ HRESULT InitDevice()
     for( UINT driverTypeIndex = 0; driverTypeIndex < numDriverTypes; driverTypeIndex++ )
     {
         g_driverType = driverTypes[driverTypeIndex];
-        hr = D3D11CreateDevice( nullptr, g_driverType, nullptr, createDeviceFlags, featureLevels, numFeatureLevels,
-                                D3D11_SDK_VERSION, &g_pd3dDevice, &g_featureLevel, &g_pImmediateContext );
+        hr = D3D11CreateDevice(
+            nullptr, // IDXGIAdapter
+            g_driverType, // D3D Driver Type
+            nullptr, // HMODULE Software
+            createDeviceFlags, // UINT Flags
+            featureLevels,  // D3D_FEATURE_LEVEL *pFeatureLevels
+            numFeatureLevels, // UINT Feature Levels
+            D3D11_SDK_VERSION, // UINT SDK Version
+            &g_pd3dDevice, // ID3D11Device **ppDevice
+            &g_featureLevel, // D3D_FEATURE_LEVEL *pFeatureLevel
+            &g_pImmediateContext ); // ID3D11DeviceContext **ppImmediateContext
 
         if ( hr == E_INVALIDARG )
         {
@@ -452,17 +461,17 @@ HRESULT InitDevice()
     if( FAILED( hr ) )
         return hr;
 
-    //? Create depth stencil texture
+    //? Create rendered texture
     D3D11_TEXTURE2D_DESC descDepth = {};
     descDepth.Width = width;
     descDepth.Height = height;
     descDepth.MipLevels = 1;
     descDepth.ArraySize = 1;
-    descDepth.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+    descDepth.Format = DXGI_FORMAT_R8G8B8A8_UNORM; //DXGI_FORMAT_D24_UNORM_S8_UINT
     descDepth.SampleDesc.Count = 1;
     descDepth.SampleDesc.Quality = 0;
     descDepth.Usage = D3D11_USAGE_DEFAULT;
-    descDepth.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+    descDepth.BindFlags = D3D11_BIND_SHADER_RESOURCE; //D3D11_BIND_DEPTH_STENCIL
     descDepth.CPUAccessFlags = 0;
     descDepth.MiscFlags = 0;
 
@@ -470,14 +479,16 @@ HRESULT InitDevice()
     if( FAILED( hr ) )
         return hr;
 
-    //? Create the depth stencil view
-    D3D11_DEPTH_STENCIL_VIEW_DESC descDSV = {};
+    //? Create the rendered texture view
+    /*D3D11_DEPTH_STENCIL_VIEW_DESC descDSV = {};
     descDSV.Format = descDepth.Format;
     descDSV.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
     descDSV.Texture2D.MipSlice = 0;
     hr = g_pd3dDevice->CreateDepthStencilView( g_pDepthStencil, &descDSV, &g_pDepthStencilView );
     if( FAILED( hr ) )
-        return hr;
+        return hr;*/
+
+
 
     g_pImmediateContext->OMSetRenderTargets( 1, &g_pRenderTargetView, g_pDepthStencilView );
 
@@ -490,6 +501,7 @@ HRESULT InitDevice()
     vp.TopLeftX = 0;
     vp.TopLeftY = 0;
     g_pImmediateContext->RSSetViewports( 1, &vp );
+    g_pImmediateContext2->RSSetViewports(1, &vp);
 
     //? Compile the vertex shader
     ID3DBlob* pVSBlob = nullptr;
@@ -705,6 +717,7 @@ void CleanupDevice()
     if( g_pRenderTargetView ) g_pRenderTargetView->Release();
     if( g_pSwapChain1 ) g_pSwapChain1->Release();
     if( g_pSwapChain ) g_pSwapChain->Release();
+    if (g_pImmediateContext2) g_pImmediateContext2->Release();
     if( g_pImmediateContext1 ) g_pImmediateContext1->Release();
     if( g_pImmediateContext ) g_pImmediateContext->Release();
     if( g_pd3dDevice1 ) g_pd3dDevice1->Release();
@@ -757,7 +770,7 @@ void Render()
     // Clear the back buffer
     //
     g_pImmediateContext->ClearRenderTargetView( g_pRenderTargetView, Colors::MidnightBlue );
-
+    g_pImmediateContext2->ClearRenderTargetView(g_pRenderTargetView, Colors::DarkOliveGreen);
     //
     // Clear the depth buffer to 1.0 (max depth)
     //
