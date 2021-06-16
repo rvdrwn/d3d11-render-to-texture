@@ -15,6 +15,7 @@
 //--------------------------------------------------------------------------------------
 #include <windows.h>
 #include <d3d11_1.h>
+#include <d3d11_2.h>
 #include <d3dcompiler.h>
 #include <directxmath.h>
 #include <directxcolors.h>
@@ -55,11 +56,12 @@ D3D_DRIVER_TYPE                     g_driverType = D3D_DRIVER_TYPE_NULL;
 D3D_FEATURE_LEVEL                   g_featureLevel = D3D_FEATURE_LEVEL_11_0;
 ID3D11Device*                       g_pd3dDevice = nullptr;
 ID3D11Device1*                      g_pd3dDevice1 = nullptr;
+ID3D11Device2*                      g_pd3dDevice2 = nullptr;
 ID3D11DeviceContext*                g_pImmediateContext = nullptr;
 ID3D11DeviceContext1*               g_pImmediateContext1 = nullptr;
 IDXGISwapChain*                     g_pSwapChain = nullptr;
 IDXGISwapChain1*                    g_pSwapChain1 = nullptr;
-IDXGISwapChain1*                    g_pSwapChain2 = nullptr;
+IDXGISwapChain2*                    g_pSwapChain2 = nullptr;
 ID3D11RenderTargetView*             g_pRenderTargetView = nullptr;
 ID3D11Texture2D*                    g_pDepthStencil = nullptr;
 ID3D11Texture2D*                    g_pRenderedTexture = nullptr;
@@ -344,7 +346,7 @@ HRESULT InitDevice()
 
         if ( hr == E_INVALIDARG )
         {
-            // DirectX 11.0 platforms will not recognize D3D_FEATURE_LEVEL_11_1 so we need to retry without it
+            //! DirectX 11.0 platforms will not recognize D3D_FEATURE_LEVEL_11_1 so we need to retry without it
             hr = D3D11CreateDevice( nullptr, g_driverType, nullptr, createDeviceFlags, &featureLevels[1], numFeatureLevels - 1,
                                     D3D11_SDK_VERSION, &g_pd3dDevice, &g_featureLevel, &g_pImmediateContext );
         }
