@@ -15,6 +15,7 @@
 //--------------------------------------------------------------------------------------
 #include <windows.h>
 #include <d3d11_1.h>
+#include <d3d11_2.h>
 #include <d3dcompiler.h>
 #include <directxmath.h>
 #include <directxcolors.h>
@@ -63,6 +64,7 @@ ID3D11DeviceContext*                g_pImmediateContext = nullptr;
 ID3D11DeviceContext1*               g_pImmediateContext1 = nullptr;
 IDXGISwapChain*                     g_pSwapChain = nullptr;
 IDXGISwapChain1*                    g_pSwapChain1 = nullptr;
+IDXGISwapChain2*                    g_pSwapChain2 = nullptr;
 ID3D11RenderTargetView*             g_pRenderTargetView = nullptr;
 ID3D11Texture2D*                    g_pDepthStencil = nullptr;
 ID3D11DepthStencilView*             g_pDepthStencilView = nullptr;
@@ -428,8 +430,6 @@ HRESULT InitDevice()
         sd1.SampleDesc.Count = 1;
         sd1.SampleDesc.Quality = 0;
         sd1.Windowed = TRUE;
-
-        hr = dxgiFactory->CreateSwapChain( g_pd3dDevice, &sd1, &g_pSwapChain );
 
 
     // Note this tutorial doesn't handle full-screen swapchains so we block the ALT+ENTER shortcut
