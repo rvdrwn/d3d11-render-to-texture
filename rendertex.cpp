@@ -632,6 +632,37 @@ HRESULT InitDevice()
     if( FAILED( hr ) )
         return hr;
 
+    D3D11_TEXTURE2D_DESC rendTexDesc = {};
+    rendTexDesc.Width = width;
+    rendTexDesc.Height = height;
+    rendTexDesc.MipLevels = 0;
+    rendTexDesc.ArraySize = 1;
+    rendTexDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    rendTexDesc.SampleDesc.Count = 1;
+    rendTexDesc.SampleDesc.Quality = 0;
+    rendTexDesc.Usage = D3D11_USAGE_DEFAULT;
+    rendTexDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+    rendTexDesc.CPUAccessFlags = 0;
+    rendTexDesc.MiscFlags = 0;
+
+    hr = g_pd3dDevice->CreateTexture2D(&rendTexDesc, nullptr, &g_pRenderedTex);
+    if (FAILED(hr))
+        return hr;
+
+    hr = g_pSwapChainA->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(&g_pRenderedTex));
+    if (FAILED(hr))
+        return hr;
+
+    D3D11_SHADER_RESOURCE_VIEW_DESC rd = {};
+    rd.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    rd.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+    rd.Texture2D.MostDetailedMip = 0;
+    rd.Texture2D.MipLevels = 1;
+
+    hr = g_pd3dDevice->CreateShaderResourceView(g_pRenderedTex, &rd, &g_pTextureRV1);
+    if (FAILED(hr))
+        return hr;
+
     //? Create the sample state
     D3D11_SAMPLER_DESC sampDesc = {};
     sampDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
@@ -957,17 +988,7 @@ HRESULT InitDeviceB()
     //rd.Buffer = &g_pCBChangeOnResize;
 
     //    // g_pCBChangeOnResize
-    hr = g_pSwapChainA->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(&g_pRenderedTex));
-    if (FAILED(hr))
-        return hr;
 
-    D3D11_SHADER_RESOURCE_VIEW_DESC rd = {};
-    rd.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-    rd.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-
-    hr = g_pd3dDevice->CreateShaderResourceView(g_pRenderedTex, &rd, &g_pTextureRV1);
-    if (FAILED(hr))
-        return hr;
 
     //? Create the sample state
     D3D11_SAMPLER_DESC sampDesc = {};
