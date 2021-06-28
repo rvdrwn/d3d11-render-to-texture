@@ -1150,7 +1150,7 @@ void RenderA()
     // Set Output Merger Render Target
     g_pImmediateContextA->OMSetRenderTargets(1, &g_pRenderTargetViewA, g_pDepthStencilViewA);
 
-
+    //DirectX::CaptureTexture(g_pd3dDeviceA,)
 
     // Rotate cube around the origin
     g_World = XMMatrixRotationY( t );
