@@ -21,6 +21,8 @@
 #include <directxcolors.h>
 #include "DDSTextureLoader.h"
 #include "resource.h"
+#include "DirectXTex/DirectXTex/DirectXTexP.h"
+#include "DirectXTex/DirectXTex/DirectXTex.h"
 
 using namespace DirectX;
 
@@ -117,7 +119,6 @@ HANDLE                              texHandle;
 //? Forward declarations
 //? --------------------------------------------------------------------------------------
 HRESULT InitWindow( HINSTANCE hInstance, int nCmdShow );
-HRESULT InitDevice();
 HRESULT InitWndA();
 HRESULT InitWndB();
 void CleanupDevice();
@@ -1063,7 +1064,7 @@ HRESULT InitWndB()
 //? --------------------------------------------------------------------------------------
 void CleanupDevice()
 {
-    if( g_pImmediateContextA ) g_pImmediateContextA->ClearState();
+    if( g_pImmediateContextA ) g_pImmediateContextA->Flush();
     if (g_pImmediateContextB) g_pImmediateContextB->ClearState();
 
     if( g_pSamplerLinear ) g_pSamplerLinear->Release();
@@ -1149,6 +1150,8 @@ void RenderA()
     // Set Output Merger Render Target
     g_pImmediateContextA->OMSetRenderTargets(1, &g_pRenderTargetViewA, g_pDepthStencilViewA);
 
+
+
     // Rotate cube around the origin
     g_World = XMMatrixRotationY( t );
 
@@ -1200,11 +1203,16 @@ void RenderB()
 
 
     // Set Output Merger Render Target
+    ID3D11Resource* tempRes;
     ID3D11Texture2D* tempTex;
     g_pImmediateContextB->OMSetRenderTargets(1, &g_pRenderTargetViewB, g_pDepthStencilViewB);
 
     g_pd3dDeviceB->OpenSharedResource(texHandle, __uuidof(ID3D11Texture2D), (void**)&tempTex);
-    g_pImmediateContextB->CopyResource(g_pRenderedTexB, tempTex);
+    g_pRenderedTexB->QueryInterface(__uuidof(ID3D11Resource), reinterpret_cast<void**>(&tempRes));
+    g_pImmediateContextB->CopySubresourceRegion(tempRes, 0, 0, 0, 0, tempTex, 0, nullptr);
+    tempRes->Release();
+    tempTex->Release();
+
     //g_pImmediateContextB->CopyResource(g_pRenderedTexB, g_pRenderedTex);
 
     // Rotate cube around the origin
