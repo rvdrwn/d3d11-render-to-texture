@@ -96,6 +96,7 @@ ID3D11Buffer*                       g_pCBChangesEveryFrame = nullptr;
 ID3D11Buffer*                       g_pCBNeverChangesB = nullptr;
 ID3D11Buffer*                       g_pCBChangeOnResizeB = nullptr;
 ID3D11Buffer*                       g_pCBChangesEveryFrameB = nullptr;
+ID3D11Buffer*                       g_pSwapARenderBackBuffer = nullptr;
 ID3D11ShaderResourceView*           g_pTextureRV = nullptr;
 ID3D11ShaderResourceView*           g_pTextureRV1 = nullptr;
 ID3D11SamplerState*                 g_pSamplerLinear = nullptr;
@@ -453,7 +454,8 @@ HRESULT InitWndA()
         sd.SampleDesc.Count = 1;
         sd.SampleDesc.Quality = 0;
         sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-        sd.BufferCount = 1;
+        sd.BufferCount = DXGI_MAX_SWAP_CHAIN_BUFFERS;
+        sd.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
 
         hr = dxgiFactory2->CreateSwapChainForHwnd( g_pd3dDeviceA, g_hWnd, &sd, nullptr, nullptr, &g_pSwapChain1A );
         if (SUCCEEDED(hr))
@@ -475,7 +477,6 @@ HRESULT InitWndA()
         return hr;
 
     hr = g_pd3dDeviceA->CreateRenderTargetView( pBackBuffer, nullptr, &g_pRenderTargetViewA );
-    pBackBuffer->Release();
     if( FAILED( hr ) )
         return hr;
 
@@ -605,7 +606,7 @@ HRESULT InitWndA()
     };
 
     bd.Usage = D3D11_USAGE_DEFAULT;
-    bd.ByteWidth = sizeof( WORD ) * 6;
+    bd.ByteWidth = sizeof( WORD ) * 36;
     bd.BindFlags = D3D11_BIND_INDEX_BUFFER;
     bd.CPUAccessFlags = 0;
     InitData.pSysMem = indices;
@@ -638,7 +639,9 @@ HRESULT InitWndA()
     if( FAILED( hr ) )
         return hr;
 
+    //! ####################################################################################################
     //! Load the Texture
+
     hr = CreateDDSTextureFromFile( g_pd3dDeviceA, L"test.dds", nullptr, &g_pTextureRV );
     if (FAILED(hr))
         return hr;
@@ -675,6 +678,7 @@ HRESULT InitWndA()
     hr = g_pSwapChainA->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(&g_pRenderedTex));
     if (FAILED(hr))
         return hr;
+    //! ####################################################################################################
 
     //? Create the sample state
     D3D11_SAMPLER_DESC sampDesc = {};
@@ -708,6 +712,9 @@ HRESULT InitWndA()
     CBChangeOnResize cbChangesOnResize;
     cbChangesOnResize.mProjection = XMMatrixTranspose( g_Projection );
     g_pImmediateContextA->UpdateSubresource( g_pCBChangeOnResize, 0, nullptr, &cbChangesOnResize, 0, 0 );
+
+    pBackBuffer->Release();
+    tempResource->Release();
 
     return S_OK;
 }
@@ -793,7 +800,8 @@ HRESULT InitWndB()
     sd.SampleDesc.Count = 1;
     sd.SampleDesc.Quality = 0;
     sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-    sd.BufferCount = 1;
+    sd.BufferCount = DXGI_MAX_SWAP_CHAIN_BUFFERS;
+    sd.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
 
     hr = dxgiFactory2->CreateSwapChainForHwnd(g_pd3dDeviceB, g_hWndB, &sd, nullptr, nullptr, &g_pSwapChain1B);
     if (SUCCEEDED(hr))
@@ -944,7 +952,7 @@ HRESULT InitWndB()
     };
 
     bd.Usage = D3D11_USAGE_DEFAULT;
-    bd.ByteWidth = sizeof(WORD) * 6;
+    bd.ByteWidth = sizeof(WORD) * 36;
     bd.BindFlags = D3D11_BIND_INDEX_BUFFER;
     bd.CPUAccessFlags = 0;
     InitData.pSysMem = indices;
@@ -978,6 +986,27 @@ HRESULT InitWndB()
         return hr;
 
     //! ####################################################################################################
+
+    /*hr = CreateDDSTextureFromFile(g_pd3dDeviceB, L"test2.dds", nullptr, &g_pTextureRV1);
+    if (FAILED(hr))
+        return hr;*/
+
+    D3D11_TEXTURE2D_DESC td = {};
+    td.Width = width;
+    td.Height = height;
+    td.MipLevels = 0;
+    td.ArraySize = 1;
+    td.SampleDesc.Count = 1;
+    td.SampleDesc.Quality = 0;
+    td.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    td.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+    td.CPUAccessFlags = 0;
+    td.MiscFlags = D3D11_RESOURCE_MISC_SHARED;
+
+    hr = g_pd3dDeviceB->CreateTexture2D(&td, nullptr, &g_pRenderedTexB);
+    if (FAILED(hr))
+        return hr;
+
     hr = g_pd3dDeviceB->OpenSharedResource(texHandle, __uuidof(ID3D11Texture2D), (void**)&g_pRenderedTex);
 
     D3D11_SHADER_RESOURCE_VIEW_DESC rd = {};
@@ -986,7 +1015,9 @@ HRESULT InitWndB()
     rd.Texture2D.MostDetailedMip = 0;
     rd.Texture2D.MipLevels = 1;
 
-    hr = g_pd3dDeviceB->CreateShaderResourceView(g_pRenderedTex, &rd, &g_pTextureRV1);
+    //CreateDDSTextureFromMemory(g_pd3dDeviceB, nullptr, nullptr, &g_pRenderedTex, &g_pTextureRV1);
+
+    hr = g_pd3dDeviceB->CreateShaderResourceView(g_pRenderedTexB, nullptr, &g_pTextureRV1);
     if (FAILED(hr))
         return hr;
     //! ####################################################################################################
@@ -1106,32 +1137,6 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
     return 0;
 }
 
-LRESULT CALLBACK WndProcB(HWND hWndB, UINT message, WPARAM wParam, LPARAM lParam)
-{
-    PAINTSTRUCT ps;
-    HDC hdc;
-
-    switch (message)
-    {
-    case WM_PAINT:
-        hdc = BeginPaint(hWndB, &ps);
-        EndPaint(hWndB, &ps);
-        break;
-
-    case WM_DESTROY:
-        PostQuitMessage(0);
-        break;
-
-        // Note that this tutorial does not handle resizing (WM_SIZE) requests,
-        // so we created the window without the resize border.
-
-    default:
-        return DefWindowProc(hWndB, message, wParam, lParam);
-    }
-
-    return 0;
-}
-
 
 //? --------------------------------------------------------------------------------------
 //? Render a frame
@@ -1140,6 +1145,9 @@ void RenderA()
 {
     // Update our time
     static float t = 0.0f;
+
+    // Set Output Merger Render Target
+    g_pImmediateContextA->OMSetRenderTargets(1, &g_pRenderTargetViewA, g_pDepthStencilViewA);
 
     // Rotate cube around the origin
     g_World = XMMatrixRotationY( t );
@@ -1173,13 +1181,16 @@ void RenderA()
     g_pImmediateContextA->PSSetConstantBuffers( 2, 1, &g_pCBChangesEveryFrame );
     g_pImmediateContextA->PSSetShaderResources( 0, 1, &g_pTextureRV );
     g_pImmediateContextA->PSSetSamplers( 0, 1, &g_pSamplerLinear );
-    g_pImmediateContextA->DrawIndexed( 36, 0, 0 );
-    g_pImmediateContextA->Flush();
+    g_pImmediateContextA->DrawIndexed( 6, 0, 0 );
 
     //
     // Present our back buffer to our front buffer
     //
     g_pSwapChainA->Present( 0, 0 );
+
+    g_pSwapChainA->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(&g_pRenderedTex));
+
+    g_pImmediateContextA->Flush();
 }
 
 void RenderB()
@@ -1187,13 +1198,22 @@ void RenderB()
     // Update our time
     static float t = 0.0f;
 
+
+    // Set Output Merger Render Target
+    ID3D11Texture2D* tempTex;
+    g_pImmediateContextB->OMSetRenderTargets(1, &g_pRenderTargetViewB, g_pDepthStencilViewB);
+
+    g_pd3dDeviceB->OpenSharedResource(texHandle, __uuidof(ID3D11Texture2D), (void**)&tempTex);
+    g_pImmediateContextB->CopyResource(g_pRenderedTexB, tempTex);
+    //g_pImmediateContextB->CopyResource(g_pRenderedTexB, g_pRenderedTex);
+
     // Rotate cube around the origin
     g_World = XMMatrixRotationY(t);
 
     //
     // Clear the back buffer
     //
-    g_pImmediateContextB->ClearRenderTargetView(g_pRenderTargetViewB, Colors::OliveDrab);
+    g_pImmediateContextB->ClearRenderTargetView(g_pRenderTargetViewB, Colors::CadetBlue);
 
     //
     // Clear the depth buffer to 1.0 (max depth)
@@ -1219,7 +1239,7 @@ void RenderB()
     g_pImmediateContextB->PSSetConstantBuffers( 2, 1, &g_pCBChangesEveryFrameB );
     g_pImmediateContextB->PSSetShaderResources( 0, 1, &g_pTextureRV1 );
     g_pImmediateContextB->PSSetSamplers( 0, 1, &g_pSamplerLinear1 );
-    g_pImmediateContextB->DrawIndexed( 36, 0, 0 );
+    g_pImmediateContextB->DrawIndexed( 6, 0, 0 );
 
     //
     // Present our back buffer to our front buffer

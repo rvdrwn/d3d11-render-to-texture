@@ -29,5 +29,8 @@
     <Image Include="test.dds">
       <Filter>Resource Files</Filter>
     </Image>
+    <Image Include="test2.dds">
+      <Filter>Resource Files</Filter>
+    </Image>
   </ItemGroup>
 </Project>
